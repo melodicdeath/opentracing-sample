@@ -8,9 +8,22 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
+	"google.golang.org/grpc"
 	"io"
+	"log"
 	"net/http"
+	"opentracing-sample/service"
 	"time"
+)
+
+const (
+	address     = "localhost:50051"
+	defaultName = "world"
+)
+
+var (
+	Conn *grpc.ClientConn
+	err  error
 )
 
 func TraceInit(serviceName string) (opentracing.Tracer, io.Closer) {
@@ -29,6 +42,25 @@ func TraceInit(serviceName string) (opentracing.Tracer, io.Closer) {
 		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
 	}
 	return tracer, closer
+}
+
+func ConnectgRPCServer() {
+	Conn, err = grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+
+	c := service.NewGreeterClient(Conn)
+
+	// Contact the server and print out its response.
+	name := defaultName
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	r, err := c.SayHello(ctx, &service.HelloRequest{Name: name})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Printf("Greeting: %s", r.GetMessage())
 }
 
 func TracerWrapper(c *gin.Context) {
@@ -67,6 +99,7 @@ func TracerWrapper(c *gin.Context) {
 }
 
 func httpServer() *gin.Engine {
+
 	r := gin.Default()
 	r.Use(TracerWrapper)
 	//r.Use(ginzap.Ginzap(zap.L(), time.RFC3339, true))
@@ -105,6 +138,9 @@ func doPing2(ctx context.Context) {
 }
 
 func main() {
+	ConnectgRPCServer()
+	defer Conn.Close()
+
 	var closer io.Closer
 	tracer, closer := TraceInit("gin-sample-tracing")
 	defer closer.Close()

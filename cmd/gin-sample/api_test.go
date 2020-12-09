@@ -23,6 +23,9 @@ func getHttpExpect(t *testing.T) *httpexpect.Expect {
 }
 
 func TestProduct(t *testing.T) {
+	ConnectgRPCServer()
+	defer Conn.Close()
+
 	var closer io.Closer
 	tracer, closer := TraceInit("gin-sample-tracing")
 	defer closer.Close()
