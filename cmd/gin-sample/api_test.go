@@ -5,6 +5,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"io"
 	"net/http"
+	"opentracing-sample/config"
 	"testing"
 )
 
@@ -23,11 +24,11 @@ func getHttpExpect(t *testing.T) *httpexpect.Expect {
 }
 
 func TestProduct(t *testing.T) {
-	ConnectgRPCServer()
+	//ConnectgRPCServer()
 	defer Conn.Close()
 
 	var closer io.Closer
-	tracer, closer := TraceInit("gin-sample-tracing")
+	tracer, closer := config.TraceInit("gin-sample-tracing")
 	defer closer.Close()
 	opentracing.SetGlobalTracer(tracer)
 

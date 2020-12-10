@@ -6,12 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
-	"github.com/uber/jaeger-client-go"
-	jaegercfg "github.com/uber/jaeger-client-go/config"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"io"
 	"log"
 	"net/http"
+	"opentracing-sample/config"
+	. "opentracing-sample/config"
 	"opentracing-sample/service"
 	"time"
 )
@@ -26,41 +27,53 @@ var (
 	err  error
 )
 
-func TraceInit(serviceName string) (opentracing.Tracer, io.Closer) {
-	cfg := &jaegercfg.Configuration{
-		Sampler: &jaegercfg.SamplerConfig{
-			Type:  "const",
-			Param: 1,
-		},
-		Reporter: &jaegercfg.ReporterConfig{
-			LogSpans:           true,
-			LocalAgentHostPort: "127.0.0.1:6831",
-		},
+func ClientInterceptor(tracer opentracing.Tracer, spanContext opentracing.SpanContext) grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string,
+		req, reply interface{}, cc *grpc.ClientConn,
+		invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+
+		span := opentracing.StartSpan(
+			"call gRPC",
+			opentracing.ChildOf(spanContext),
+			opentracing.Tag{Key: string(ext.Component), Value: "gRPC"},
+			ext.SpanKindRPCClient,
+		)
+
+		defer span.Finish()
+
+		md, ok := metadata.FromOutgoingContext(ctx)
+		if !ok {
+			md = metadata.New(nil)
+		} else {
+			md = md.Copy()
+		}
+
+		// 在客户端拦截器中把 span 注入进去`
+		err := tracer.Inject(span.Context(), opentracing.TextMap, MDReaderWriter{md})
+		if err != nil {
+			panic(err)
+		}
+
+		newCtx := metadata.NewOutgoingContext(ctx, md)
+		err = invoker(newCtx, method, req, reply, cc, opts...)
+		if err != nil {
+			panic(err)
+		}
+		return err
 	}
-	tracer, closer, err := cfg.New(serviceName, jaegercfg.Logger(jaeger.StdLogger))
-	if err != nil {
-		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
-	}
-	return tracer, closer
 }
 
-func ConnectgRPCServer() {
-	Conn, err = grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
+func ConnectgRPCServer(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
+	defer cancel()
+
+	parentSpanContext, _ := c.Get("ctx")
+	Conn, err = grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock(),
+		grpc.WithUnaryInterceptor(ClientInterceptor(opentracing.GlobalTracer(), parentSpanContext.(opentracing.SpanContext))))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 
-	c := service.NewGreeterClient(Conn)
-
-	// Contact the server and print out its response.
-	name := defaultName
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	r, err := c.SayHello(ctx, &service.HelloRequest{Name: name})
-	if err != nil {
-		log.Fatalf("could not greet: %v", err)
-	}
-	log.Printf("Greeting: %s", r.GetMessage())
 }
 
 func TracerWrapper(c *gin.Context) {
@@ -95,6 +108,7 @@ func TracerWrapper(c *gin.Context) {
 	//c.Set(contextTracerKey, ctx)
 
 	c.Set("ctx", opentracing.ContextWithSpan(context.Background(), sp))
+
 	c.Next()
 }
 
@@ -110,10 +124,13 @@ func httpServer() *gin.Engine {
 }
 
 func getProductReviews(c *gin.Context) {
+	checkToken(c)
+
 	psc, _ := c.Get("ctx")
 	ctx := psc.(context.Context)
-	doPing1(ctx)
-	doPing2(ctx)
+
+	doSomething1(ctx)
+	doSomething2(ctx)
 }
 
 func getProduceDetails(c *gin.Context) {
@@ -121,28 +138,44 @@ func getProduceDetails(c *gin.Context) {
 	ctx := psc.(context.Context)
 	reqSpan, _ := opentracing.StartSpanFromContext(ctx, "getProduceDetails")
 	defer reqSpan.Finish()
+
+	checkToken(c)
 }
 
-func doPing1(ctx context.Context) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "doPing1")
+func doSomething1(ctx context.Context) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "doSomething1 (进程内)")
 	defer span.Finish()
 	time.Sleep(time.Second)
 	fmt.Println("pong")
 }
 
-func doPing2(ctx context.Context) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "doPing2")
+func doSomething2(ctx context.Context) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "doSomething2 (进程内)")
 	defer span.Finish()
 	time.Sleep(time.Second)
 	fmt.Println("pong")
+}
+
+func checkToken(c *gin.Context) {
+	ConnectgRPCServer(c)
+	client := service.NewGreeterClient(Conn)
+
+	name := defaultName
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	r, err := client.SayHello(ctx, &service.HelloRequest{Name: name})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Printf("Greeting: %s", r.GetMessage())
 }
 
 func main() {
-	ConnectgRPCServer()
+
 	defer Conn.Close()
 
 	var closer io.Closer
-	tracer, closer := TraceInit("gin-sample-tracing")
+	tracer, closer := config.TraceInit("gin-sample-tracing")
 	defer closer.Close()
 	opentracing.SetGlobalTracer(tracer)
 
