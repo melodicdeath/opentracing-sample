@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
+	"github.com/uber/jaeger-client-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"io"
@@ -67,7 +68,7 @@ func ConnectgRPCServer(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
-	parentSpanContext, _ := c.Get("ctx")
+	parentSpanContext, _ := c.Get("parentSpanCtx")
 	Conn, err = grpc.DialContext(ctx, address, grpc.WithInsecure(), grpc.WithBlock(),
 		grpc.WithUnaryInterceptor(ClientInterceptor(opentracing.GlobalTracer(), parentSpanContext.(opentracing.SpanContext))))
 	if err != nil {
@@ -80,6 +81,7 @@ func TracerWrapper(c *gin.Context) {
 	//md := make(map[string]string)
 	spanCtx, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(c.Request.Header))
 	sp := opentracing.GlobalTracer().StartSpan(c.Request.URL.Path, opentracing.ChildOf(spanCtx))
+
 	defer sp.Finish()
 
 	//if err := opentracing.GlobalTracer().Inject(sp.Context(),
@@ -107,13 +109,13 @@ func TracerWrapper(c *gin.Context) {
 	//ctx = metadata.NewContext(ctx, md)
 	//c.Set(contextTracerKey, ctx)
 
+	c.Set("parentSpanCtx", sp.Context())
 	c.Set("ctx", opentracing.ContextWithSpan(context.Background(), sp))
 
 	c.Next()
 }
 
 func httpServer() *gin.Engine {
-
 	r := gin.Default()
 	r.Use(TracerWrapper)
 	//r.Use(ginzap.Ginzap(zap.L(), time.RFC3339, true))
@@ -124,6 +126,7 @@ func httpServer() *gin.Engine {
 }
 
 func getProductReviews(c *gin.Context) {
+
 	checkToken(c)
 
 	psc, _ := c.Get("ctx")
@@ -139,6 +142,9 @@ func getProduceDetails(c *gin.Context) {
 	reqSpan, _ := opentracing.StartSpanFromContext(ctx, "getProduceDetails")
 	defer reqSpan.Finish()
 
+	spanContext := reqSpan.Context().(jaeger.SpanContext)
+	log.Println(spanContext.TraceID())
+	log.Println(spanContext.SpanID())
 	checkToken(c)
 }
 
@@ -156,7 +162,7 @@ func doSomething2(ctx context.Context) {
 	fmt.Println("pong")
 }
 
-func checkToken(c *gin.Context) {
+func checkToken(c *gin.Context) context.Context {
 	ConnectgRPCServer(c)
 	client := service.NewGreeterClient(Conn)
 
@@ -168,6 +174,8 @@ func checkToken(c *gin.Context) {
 		log.Fatalf("could not greet: %v", err)
 	}
 	log.Printf("Greeting: %s", r.GetMessage())
+
+	return ctx
 }
 
 func main() {

@@ -17,8 +17,9 @@ func initJaeger(service string) (opentracing.Tracer, io.Closer) {
 			Param: 1,
 		},
 		Reporter: &config.ReporterConfig{
-			LogSpans:           true,
-			LocalAgentHostPort: "127.0.0.1:6831",
+			LogSpans: true,
+			//LocalAgentHostPort: "127.0.0.1:6831",
+			LocalAgentHostPort: "122.51.128.9:6831",
 		},
 	}
 	tracer, closer, err := cfg.New(service, config.Logger(jaeger.StdLogger))
