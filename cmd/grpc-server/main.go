@@ -11,7 +11,6 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"io"
 	"log"
 	"net"
 	. "opentracing-sample/config"
@@ -59,10 +58,10 @@ func ServerInterceptor(tracer opentracing.Tracer) grpc.UnaryServerInterceptor {
 }
 
 func main() {
-	var closer io.Closer
-	tracer, closer := TraceInit("auth-api-grpc")
-	defer closer.Close()
-	opentracing.SetGlobalTracer(tracer)
+	//var closer io.Closer
+	//tracer, closer := TraceInit("auth-api-grpc")
+	//defer closer.Close()
+	//opentracing.SetGlobalTracer(tracer)
 
 	lis, err := net.Listen("tcp", port)
 	if err != nil {

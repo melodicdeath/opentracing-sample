@@ -6,21 +6,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
-	"github.com/uber/jaeger-client-go"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"io"
 	"log"
 	"net/http"
-	"opentracing-sample/config"
 	. "opentracing-sample/config"
 	"opentracing-sample/service"
 	"time"
 )
 
 const (
-	address     = "localhost:50051"
+	//address     = "localhost:50051"
 	defaultName = "world"
+	address     = "grpc-server:50051"
 )
 
 var (
@@ -142,9 +140,9 @@ func getProduceDetails(c *gin.Context) {
 	reqSpan, _ := opentracing.StartSpanFromContext(ctx, "getProduceDetails")
 	defer reqSpan.Finish()
 
-	spanContext := reqSpan.Context().(jaeger.SpanContext)
-	log.Println(spanContext.TraceID())
-	log.Println(spanContext.SpanID())
+	//spanContext := reqSpan.Context().(jaeger.SpanContext)
+	//log.Println(spanContext.TraceID())
+	//log.Println(spanContext.SpanID())
 	checkToken(c)
 }
 
@@ -179,13 +177,10 @@ func checkToken(c *gin.Context) context.Context {
 }
 
 func main() {
-
-	defer Conn.Close()
-
-	var closer io.Closer
-	tracer, closer := config.TraceInit("gin-sample-tracing")
-	defer closer.Close()
-	opentracing.SetGlobalTracer(tracer)
+	//var closer io.Closer
+	//tracer, closer := config.TraceInit("gin-sample-tracing")
+	//defer closer.Close()
+	//opentracing.SetGlobalTracer(tracer)
 
 	r := httpServer()
 	r.Run()

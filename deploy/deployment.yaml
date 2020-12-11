@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gin-sample-grpc-server
+  labels:
+    app: gin-sample-grpc-server
+    cs.cptmcp.com/component: gin
+    cs.cptmcp.com/language: go
+    cs.cptmcp.com/tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gin-sample-grpc-server
+  template:
+    metadata:
+      labels:
+        app: gin-sample-grpc-server
+    spec:
+      serviceAccountName: default
+      securityContext:
+        {}
+      containers:
+      - name: gin-sample-grpc-server
+        securityContext:
+          {}
+        image: "gin-sample-grpc-server"
+        imagePullPolicy: IfNotPresent
+        ports:
+          - name: http
+            containerPort: 50051
+            protocol: TCP
+        # livenessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: http
+        # readinessProbe:
+        #   httpGet:
+        #     path: /
+        #     port: http
+        resources:
+          {}
+        volumeMounts:
+        - mountPath: /etc/localtime
+          name: localtime
+          readOnly: true
+      volumes:
+      - name: localtime
+        hostPath:
+          path: /etc/localtime
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gin-sample-tracing
+  labels:
+    app: gin-sample-tracing
+    cs.cptmcp.com/component: gin
+    cs.cptmcp.com/language: go
+    cs.cptmcp.com/tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gin-sample-tracing
+  template:
+    metadata:
+      labels:
+        app: gin-sample-tracing
+    spec:
+      serviceAccountName: default
+      securityContext:
+        {}
+      containers:
+        - name: gin-sample-tracing
+          securityContext:
+            {}
+          image: "gin-sample-tracing"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: http
+          resources:
+            {}
+          volumeMounts:
+            - mountPath: /etc/localtime
+              name: localtime
+              readOnly: true
+      volumes:
+        - name: localtime
+          hostPath:
+            path: /etc/localtime
+

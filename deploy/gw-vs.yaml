@@ -1,0 +1,35 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: default
+spec:
+  gateways:
+    - "bookinfo-gateway"
+  hosts:
+    - "*"
+  http:
+    - match:
+        - uri:
+            exact: /api/product
+        - uri:
+            exact: /api/reviews
+      route:
+      - destination:
+          host: gin-sample-tracing
+          port:
+            number: 80
+
+      # corsPolicy:
+      #   allowOrigins:
+      #     - exact: "*"
+      #   allowMethods:
+      #     - POST
+      #     - GET
+      #     - PUT
+      #     - DELETE
+      #     - OPTIONS
+      #   allowCredentials: true
+      #   allowHeaders:
+      #     - Content-Type
+      #     - Authorization
+      #   # maxAge: "24h"

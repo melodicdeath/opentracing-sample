@@ -1,0 +1,5 @@
+FROM alpine:3.9
+WORKDIR /opt/gin-sample
+COPY gin-sample-grpc-server .
+EXPOSE 50051
+CMD ["./gin-sample-grpc-server"]

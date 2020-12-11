@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpc-server
+  labels:
+    app: grpc-server
+    cs.cptmcp.com/component: gin
+    cs.cptmcp.com/language: go
+    cs.cptmcp.com/tier: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 50051
+      protocol: TCP
+      name: tcp
+  selector:
+    app: gin-sample-grpc-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gin-sample-tracing
+  labels:
+    app: gin-sample-tracing
+    cs.cptmcp.com/component: gin
+    cs.cptmcp.com/language: go
+    cs.cptmcp.com/tier: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: tcp
+  selector:
+    app: gin-sample-tracing
