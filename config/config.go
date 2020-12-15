@@ -16,13 +16,15 @@ func TraceInit(serviceName string) (opentracing.Tracer, io.Closer) {
 			Type:  "const",
 			Param: 1,
 		},
+		ServiceName: serviceName,
 		Reporter: &jaegercfg.ReporterConfig{
 			LogSpans:           true,
-			LocalAgentHostPort: "127.0.0.1:6831",
+			LocalAgentHostPort: "jaeger-agent.istio-system:6831",
+			//LocalAgentHostPort: "127.0.0.1:6831",
 			//LocalAgentHostPort: "122.51.128.9:6831",
 		},
 	}
-	tracer, closer, err := cfg.New(serviceName, jaegercfg.Logger(jaeger.StdLogger))
+	tracer, closer, err := cfg.NewTracer(jaegercfg.Logger(jaeger.StdLogger))
 	if err != nil {
 		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
 	}

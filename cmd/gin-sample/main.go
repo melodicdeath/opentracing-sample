@@ -8,8 +8,10 @@ import (
 	"github.com/opentracing/opentracing-go/ext"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"io"
 	"log"
 	"net/http"
+	"opentracing-sample/config"
 	. "opentracing-sample/config"
 	"opentracing-sample/service"
 	"time"
@@ -72,7 +74,6 @@ func ConnectgRPCServer(c *gin.Context) {
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
-
 }
 
 func TracerWrapper(c *gin.Context) {
@@ -123,7 +124,7 @@ func httpServer() *gin.Engine {
 	return r
 }
 
-func getProductReviews(c *gin.Context) {
+func getProduceDetails(c *gin.Context) {
 
 	checkToken(c)
 
@@ -134,7 +135,7 @@ func getProductReviews(c *gin.Context) {
 	doSomething2(ctx)
 }
 
-func getProduceDetails(c *gin.Context) {
+func getProductReviews(c *gin.Context) {
 	psc, _ := c.Get("ctx")
 	ctx := psc.(context.Context)
 	reqSpan, _ := opentracing.StartSpanFromContext(ctx, "getProduceDetails")
@@ -163,6 +164,7 @@ func doSomething2(ctx context.Context) {
 func checkToken(c *gin.Context) context.Context {
 	ConnectgRPCServer(c)
 	client := service.NewGreeterClient(Conn)
+	defer Conn.Close()
 
 	name := defaultName
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -177,10 +179,10 @@ func checkToken(c *gin.Context) context.Context {
 }
 
 func main() {
-	//var closer io.Closer
-	//tracer, closer := config.TraceInit("gin-sample-tracing")
-	//defer closer.Close()
-	//opentracing.SetGlobalTracer(tracer)
+	var closer io.Closer
+	tracer, closer := config.TraceInit("gin-sample-tracing")
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
 
 	r := httpServer()
 	r.Run()

@@ -3,7 +3,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./bin/gin-sample-tracing ./cmd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./bin/gin-sample-grpc-server ./cmd/grpc-server/main.go
 
 docker build -f build/Dockerfile-gin-sample -t gin-sample-tracing bin/
-docker build -f build/Dockerfile-grpc-server -t gin-grpc-server bin/
+docker build -f build/Dockerfile-grpc-server -t gin-sample-grpc-server bin/
 
 docker save -o bin/gin-sample-tracing.img gin-sample-tracing
 docker save -o bin/gin-sample-grpc-server.img gin-sample-grpc-server

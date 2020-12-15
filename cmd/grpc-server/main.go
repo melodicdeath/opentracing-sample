@@ -7,10 +7,12 @@ import (
 	"context"
 	"fmt"
 	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_opentracing "github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"io"
 	"log"
 	"net"
 	. "opentracing-sample/config"
@@ -58,19 +60,30 @@ func ServerInterceptor(tracer opentracing.Tracer) grpc.UnaryServerInterceptor {
 }
 
 func main() {
-	//var closer io.Closer
-	//tracer, closer := TraceInit("auth-api-grpc")
-	//defer closer.Close()
-	//opentracing.SetGlobalTracer(tracer)
+	var closer io.Closer
+	tracer, closer := TraceInit("auth-api-grpc")
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
 
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer(grpc.UnaryInterceptor(
-		grpcMiddleware.ChainUnaryServer(
-			ServerInterceptor(opentracing.GlobalTracer()),
-		)))
+	//s := grpc.NewServer(grpc.UnaryInterceptor(
+	//	grpcMiddleware.ChainUnaryServer(
+	//		ServerInterceptor(opentracing.GlobalTracer()),
+	//	)),)
+
+	s := grpc.NewServer(
+		grpc.StreamInterceptor(grpcMiddleware.ChainStreamServer(
+			// add opentracing stream interceptor to chain
+			grpc_opentracing.StreamServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		)),
+		grpc.UnaryInterceptor(grpcMiddleware.ChainUnaryServer(
+			// add opentracing unary interceptor to chain
+			grpc_opentracing.UnaryServerInterceptor(grpc_opentracing.WithTracer(tracer)),
+		)),
+	)
 
 	service.RegisterGreeterServer(s, &server{})
 	if err := s.Serve(lis); err != nil {

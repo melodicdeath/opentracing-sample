@@ -1,5 +1,5 @@
 FROM alpine:3.9
 WORKDIR /opt/gin-sample
 COPY gin-sample-tracing .
-EXPOSE 80
+EXPOSE 8080
 CMD ["./gin-sample-tracing"]
