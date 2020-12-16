@@ -5,12 +5,14 @@ go 1.14
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
+	github.com/antonfisher/nested-logrus-formatter v1.3.0
 	github.com/fasthttp-contrib/websocket v0.0.0-20160511215533-1f3b11f56072 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/gavv/httpexpect v2.0.0+incompatible
 	github.com/gin-gonic/gin v1.6.3
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/imkira/go-interpol v1.1.0 // indirect
@@ -22,6 +24,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
+	github.com/sirupsen/logrus v1.4.2
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/uber/jaeger-client-go v2.25.0+incompatible
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect

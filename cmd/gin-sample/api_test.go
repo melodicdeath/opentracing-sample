@@ -34,6 +34,6 @@ func TestProduct(t *testing.T) {
 
 	e := getHttpExpect(t)
 
-	e.GET("/api/product").Expect().Status(200)
+	e.GET("/api/product").WithHeader("x-request-id", "2f4b419adf0f50953c5aa47b98941f3e").Expect().Status(200)
 	e.GET("/api/reviews").Expect().Status(200)
 }

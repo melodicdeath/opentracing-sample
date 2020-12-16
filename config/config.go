@@ -2,12 +2,19 @@ package config
 
 import (
 	"fmt"
+	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
 	"google.golang.org/grpc/metadata"
 	"io"
+	"os"
 	"strings"
+)
+
+var (
+	Log = logrus.New()
 )
 
 func TraceInit(serviceName string) (opentracing.Tracer, io.Closer) {
@@ -18,10 +25,10 @@ func TraceInit(serviceName string) (opentracing.Tracer, io.Closer) {
 		},
 		ServiceName: serviceName,
 		Reporter: &jaegercfg.ReporterConfig{
-			LogSpans:           true,
-			LocalAgentHostPort: "jaeger-agent.istio-system:6831",
+			LogSpans: true,
+			//LocalAgentHostPort: "jaeger-agent.istio-system:6831",
 			//LocalAgentHostPort: "127.0.0.1:6831",
-			//LocalAgentHostPort: "122.51.128.9:6831",
+			LocalAgentHostPort: "122.51.128.9:6831",
 		},
 	}
 	tracer, closer, err := cfg.NewTracer(jaegercfg.Logger(jaeger.StdLogger))
@@ -51,4 +58,14 @@ func (c MDReaderWriter) ForeachKey(handler func(key, val string) error) error {
 func (c MDReaderWriter) Set(key, val string) {
 	key = strings.ToLower(key)
 	c.MD[key] = append(c.MD[key], val)
+}
+
+func init() {
+	Log.SetLevel(logrus.DebugLevel)
+	Log.SetOutput(os.Stdout)
+	Log.SetFormatter(&nested.Formatter{
+		HideKeys:        true,
+		TimestampFormat: "2006-01-02 15:04:05",
+		FieldsOrder:     []string{"component", "x-request-id"},
+	})
 }
