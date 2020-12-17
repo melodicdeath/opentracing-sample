@@ -77,13 +77,23 @@ func ConnectgRPCServer(c *gin.Context) {
 }
 
 func TracerWrapper(c *gin.Context) {
-	spanCtx, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(c.Request.Header))
+	//spanCtx, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(c.Request.Header))
+	spanCtx, err := ZipkinPropagator.Extract(opentracing.HTTPHeadersCarrier(c.Request.Header))
+	if err != nil {
+		Log.Error(err)
+	}
 	sp := opentracing.GlobalTracer().StartSpan(c.Request.URL.Path, opentracing.ChildOf(spanCtx))
 
 	defer sp.Finish()
 
 	//head:map[Accept:[text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9] Accept-Encoding:[gzip, deflate] Accept-Language:[zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,ja;q=0.6] Content-Length:[0] Cookie:[sidebar_collapsed=false; screenResolution=1536x864; _gitlab_session=e67f65e588be2730a3006cdae744e8a1] Dnt:[1] Upgrade-Insecure-Requests:[1] User-Agent:[Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36] X-B3-Sampled:[1] X-B3-Spanid:[3c5aa47b98941f3e] X-B3-Traceid:[2f4b419adf0f50953c5aa47b98941f3e] X-Envoy-Decorator-Operation:[gin-sample-tracing.istio-sample.svc.cluster.local:80/api/product] X-Envoy-Internal:[true] X-Envoy-Peer-Metadata:[ChoKCkNMVVNURVJfSUQSDBoKS3ViZXJuZXRlcwodCgxJTlNUQU5DRV9JUFMSDRoLMTcyLjE3LjAuMTIKlgIKBkxBQkVMUxKLAiqIAgodCgNhcHASFhoUaXN0aW8taW5ncmVzc2dhdGV3YXkKEwoFY2hhcnQSChoIZ2F0ZXdheXMKFAoIaGVyaXRhZ2USCBoGVGlsbGVyChkKBWlzdGlvEhAaDmluZ3Jlc3NnYXRld2F5CiEKEXBvZC10ZW1wbGF0ZS1oYXNoEgwaCjg0NWNjYzU5OTkKEgoHcmVsZWFzZRIHGgVpc3Rpbwo5Ch9zZXJ2aWNlLmlzdGlvLmlvL2Nhbm9uaWNhbC1uYW1lEhYaFGlzdGlvLWluZ3Jlc3NnYXRld2F5Ci8KI3NlcnZpY2UuaXN0aW8uaW8vY2Fub25pY2FsLXJldmlzaW9uEggaBmxhdGVzdAoaCgdNRVNIX0lEEg8aDWNsdXN0ZXIubG9jYWwKLwoETkFNRRInGiVpc3Rpby1pbmdyZXNzZ2F0ZXdheS04NDVjY2M1OTk5LWRwam05ChsKCU5BTUVTUEFDRRIOGgxpc3Rpby1zeXN0ZW0KXQoFT1dORVISVBpSa3ViZXJuZXRlczovL2FwaXMvYXBwcy92MS9uYW1lc3BhY2VzL2lzdGlvLXN5c3RlbS9kZXBsb3ltZW50cy9pc3Rpby1pbmdyZXNzZ2F0ZXdheQo5Cg9TRVJWSUNFX0FDQ09VTlQSJhokaXN0aW8taW5ncmVzc2dhdGV3YXktc2VydmljZS1hY2NvdW50CicKDVdPUktMT0FEX05BTUUSFhoUaXN0aW8taW5ncmVzc2dhdGV3YXk=] X-Envoy-Peer-Metadata-Id:[router~172.17.0.12~istio-ingressgateway-845ccc5999-dpjm9.istio-system~istio-system.svc.cluster.local] X-Forwarded-For:[172.17.0.1] X-Forwarded-Proto:[http] X-Request-Id:[ca10652c-7872-9c7a-83dc-15a735ace717]]
 	log.Printf("head:%+v", c.Request.Header)
+
+	//err = ZipkinPropagator.Inject(spanCtx,
+	//	opentracing.HTTPHeadersCarrier(c.Request.Header))
+	//if err != nil{
+	//	panic(err)
+	//}
 
 	if err := opentracing.GlobalTracer().Inject(
 		sp.Context(),

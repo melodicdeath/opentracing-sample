@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"
+	"github.com/uber/jaeger-client-go/zipkin"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"os"
@@ -14,7 +15,8 @@ import (
 )
 
 var (
-	Log = logrus.New()
+	Log              = logrus.New()
+	ZipkinPropagator zipkin.Propagator
 )
 
 func TraceInit(serviceName string) (opentracing.Tracer, io.Closer) {
@@ -27,10 +29,16 @@ func TraceInit(serviceName string) (opentracing.Tracer, io.Closer) {
 		Reporter: &jaegercfg.ReporterConfig{
 			LogSpans: true,
 			//LocalAgentHostPort: "jaeger-agent.istio-system:6831",
-			//LocalAgentHostPort: "127.0.0.1:6831",
-			LocalAgentHostPort: "122.51.128.9:6831",
+			LocalAgentHostPort: "127.0.0.1:6831",
 		},
 	}
+	//ZipkinPropagator = zipkin.NewZipkinB3HTTPHeaderPropagator()
+	//
+	//tracer, closer, err := cfg.NewTracer(jaegercfg.Logger(jaeger.StdLogger),
+	//	jaegercfg.ZipkinSharedRPCSpan(true),
+	//	jaegercfg.Injector(opentracing.HTTPHeaders, ZipkinPropagator),
+	//	jaegercfg.Extractor(opentracing.HTTPHeaders, ZipkinPropagator))
+
 	tracer, closer, err := cfg.NewTracer(jaegercfg.Logger(jaeger.StdLogger))
 	if err != nil {
 		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
